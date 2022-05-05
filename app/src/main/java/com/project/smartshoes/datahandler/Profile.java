@@ -10,11 +10,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Properties;
 
+
 public class Profile {
     private final String TAG = "Profile";
-    private final String CONFIGFILENAME = "config.properties";
-    private final double BARODIST = 0.2;   // distance between 2 barometers, in meters
-    private double baroDiff = 0;    // value difference between the front and the back barometer
+    private final String CONFIG_FILE_NAME = "config.properties";
+    public static final double BARO_DIST = 0.2;   // distance between 2 barometers, in meters
+    private double LBaroDiff = 0;    // value difference between the front and the back barometer of the left device
+    private double RBaroDiff = 0;    // value difference between the front and the back barometer of the right device
     private final AppCompatActivity activity;
 
 
@@ -28,18 +30,20 @@ public class Profile {
 
     public void calibrate() throws IOException {
         // TODO: add get baroValues
-        double frontBaroValue = 0;
-        double backBaroValue = 0;
+        double frontLBaroValue = 0;
+        double backLBaroValue = 0;
 
-        baroDiff = frontBaroValue - backBaroValue;
+        LBaroDiff = frontLBaroValue - backLBaroValue;
 
-        File configFile = new File(activity.getApplicationContext().getFilesDir(), CONFIGFILENAME);
+        File configFile = new File(activity.getApplicationContext().getFilesDir(), CONFIG_FILE_NAME);
         Properties properties = new Properties();
         try {
+            // try loading old config
             properties.load(new FileInputStream(configFile));
         } catch (IOException e) {
             Log.e(TAG, "Creating new config file " + configFile.getPath());
             try {
+                // no config created
                 configFile.createNewFile();
             } catch (IOException ioException) {
                 Log.e(TAG, "Error creating new config file " + configFile.getPath());
@@ -47,8 +51,10 @@ public class Profile {
             }
         }
 
-        properties.setProperty("baroDiff", String.valueOf(baroDiff));
+        properties.setProperty("LeftBaroDiff", String.valueOf(LBaroDiff));
+        properties.setProperty("RightBaroDiff", String.valueOf(RBaroDiff));
         try {
+            // create new config
             properties.store(new FileOutputStream(configFile), null);
         } catch (IOException e) {
             Log.e(TAG, "Error saving new config file " + configFile.getPath());
@@ -61,8 +67,9 @@ public class Profile {
         Properties properties = new Properties();
 
         try {
-            properties.load(new FileInputStream(new File(configPath, CONFIGFILENAME)));
-            baroDiff = Double.parseDouble(properties.getProperty("baroDiff"));
+            properties.load(new FileInputStream(new File(configPath, CONFIG_FILE_NAME)));
+            LBaroDiff = Double.parseDouble(properties.getProperty("LeftBaroDiff"));
+            RBaroDiff = Double.parseDouble(properties.getProperty("RightBaroDiff"));
             return true;
         } catch (IOException e) {
             Log.e(TAG, "Unable to load the config file: " + e.getMessage());
@@ -70,7 +77,12 @@ public class Profile {
         }
     }
 
-    public double getBaroDiff() {
-        return baroDiff;
+
+    public double getLBaroDiff() {
+        return LBaroDiff;
+    }
+
+    public double getRBaroDiff() {
+        return RBaroDiff;
     }
 }
