@@ -95,13 +95,17 @@ public class MainActivity extends AppCompatActivity {
                         }
                         break;
 
+
+                    // got message from adruino
                     case MESSAGE_READ:
                         String arduinoMsg = msg.obj.toString(); // Read message from Arduino
                         switch (arduinoMsg.toLowerCase()){
-                            case "led is turned on":
+                            case "start":
                                 break;
-                            case "led is turned off":
+                            case "end":
                                 break;
+                            default:
+
                         }
                         break;
                 }
@@ -118,22 +122,22 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Button to ON/OFF LED on Arduino Board
+        // Button to turn ON/OFF recording on the Adruino
         buttonToggle.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 String cmdText = null;
                 String btnState = buttonToggle.getText().toString().toLowerCase();
                 switch (btnState){
-                    case "turn on":
-                        buttonToggle.setText("Turn Off");
+                    case "start measuring":
+                        buttonToggle.setText("Stop measuring");
                         // Command to turn on LED on Arduino. Must match with the command in Arduino code
-                        cmdText = "<turn on>";
+                        cmdText = "<start>";
                         break;
-                    case "turn off":
-                        buttonToggle.setText("Turn On");
+                    case "stop measuring":
+                        buttonToggle.setText("Start measuring");
                         // Command to turn off LED on Arduino. Must match with the command in Arduino code
-                        cmdText = "<turn off>";
+                        cmdText = "<stop>";
                         break;
                 }
                 // Send command to Arduino board
