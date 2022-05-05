@@ -1,15 +1,21 @@
 package com.project.smartshoes.datahandler;
 
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothSocket;
+import android.os.Handler;
 import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.project.smartshoes.MainActivity;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
 
 public class ActivityRecordingSession {
     public static enum RecordSessionState {
@@ -22,21 +28,26 @@ public class ActivityRecordingSession {
         RIGHT
     }
     private final String TAG = "ActivityRecordingSession";
+    private final String START_CMD = "<start>";
+    private final String SOP_CMD = "<stop>";
 
     private long startTime = -1;
     private long endTime = -1;
     private AppCompatActivity activity;
+    private Profile profile;
+    private Handler handler;
+    private BluetoothAdapter bluetoothAdapter;
     private String sessionID;
     private File dataFilePath;
-    private String LDeviceAddress;
-    private String RDeviceAddress;
+    private ArrayList<String> sensorAddresses = new ArrayList<String>();
 
 
 
-    public ActivityRecordingSession(AppCompatActivity activity, String LDeviceAddress, String RDeviceAddress){
+    public ActivityRecordingSession(AppCompatActivity activity, Handler handler, BluetoothAdapter bluetoothAdapter){
         this.activity = activity;
-        this.LDeviceAddress = LDeviceAddress;
-        this.RDeviceAddress = RDeviceAddress;
+        this.handler = handler;
+        this.bluetoothAdapter = bluetoothAdapter;
+        profile = new Profile(activity);
         //recorder = new ActivityRecorder(); //TODO: create ActivityRecorder class
     }
 
@@ -73,7 +84,9 @@ public class ActivityRecordingSession {
     public void startRecording(){
         startTime = System.currentTimeMillis();
         sessionID = String.valueOf(startTime);
+        loadProfile();
         createDataFile();
+        sendStartSignal();
         //recorder.start(sessionID);
     }
 
@@ -98,6 +111,25 @@ public class ActivityRecordingSession {
             Log.e(TAG, "Write to file failed at " + dataFile.getPath());
             throw e;
         }
-
     }
+
+
+    public void loadProfile() {
+        if (profile.loadConfig()){
+            Log.e(TAG, "Failed to load profile config.");
+            throw new IllegalArgumentException("Failed to load Profile, please recalibrate");
+        }
+        sensorAddresses.add(profile.getSensorAddress(SensorSide.LEFT));
+        sensorAddresses.add(profile.getSensorAddress(SensorSide.RIGHT));
+    }
+
+
+    public void sendStartSignal(){
+        for (String BTAddress : sensorAddresses) {
+            MainActivity.CreateConnectThread createConnectThread = new MainActivity.CreateConnectThread(bluetoothAdapter, deviceAddress);
+            createConnectThread.start();
+        }
+    }
+
+
 }
