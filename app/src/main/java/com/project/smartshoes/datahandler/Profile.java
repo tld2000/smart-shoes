@@ -1,8 +1,12 @@
 package com.project.smartshoes.datahandler;
 
+import android.content.Intent;
 import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.project.smartshoes.MainActivity;
+import com.project.smartshoes.SelectDeviceActivity;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -18,6 +22,8 @@ public class Profile {
     private double LBaroDiff = 0;    // value difference between the front and the back barometer of the left device
     private double RBaroDiff = 0;    // value difference between the front and the back barometer of the right device
     private final AppCompatActivity activity;
+    private String LSensorAddress;
+    private String RSensorAddress;
 
 
     public Profile(AppCompatActivity activity){
@@ -29,6 +35,9 @@ public class Profile {
     }
 
     public void calibrate() throws IOException {
+        // get BT address value
+        getBTAddress();
+
         // TODO: add get baroValues
         double frontLBaroValue = 0;
         double backLBaroValue = 0;
@@ -62,6 +71,7 @@ public class Profile {
         }
     }
 
+
     public boolean loadConfig() {
         File configPath = activity.getApplicationContext().getFilesDir();
         Properties properties = new Properties();
@@ -70,19 +80,35 @@ public class Profile {
             properties.load(new FileInputStream(new File(configPath, CONFIG_FILE_NAME)));
             LBaroDiff = Double.parseDouble(properties.getProperty("LeftBaroDiff"));
             RBaroDiff = Double.parseDouble(properties.getProperty("RightBaroDiff"));
+            LSensorAddress = properties.getProperty("LSensorAddress");
+            RSensorAddress = properties.getProperty("RSensorAddress");
+
+            if (LSensorAddress == null || RSensorAddress == null)
+                return false;
             return true;
-        } catch (IOException e) {
+        } catch (IOException | NullPointerException e) {
             Log.e(TAG, "Unable to load the config file: " + e.getMessage());
             return false;
         }
     }
 
 
-    public double getLBaroDiff() {
-        return LBaroDiff;
+    public double getBaroDiff(ActivityRecordingSession.SensorSide side){
+        if (side == ActivityRecordingSession.SensorSide.LEFT)
+            return LBaroDiff;
+        return RBaroDiff;
     }
 
-    public double getRBaroDiff() {
-        return RBaroDiff;
+
+    public String getSensorAddress(ActivityRecordingSession.SensorSide side){
+        if (side == ActivityRecordingSession.SensorSide.LEFT)
+            return LSensorAddress;
+        return RSensorAddress;
+    }
+
+
+    private void getBTAddress() {
+        Intent intent = new Intent(activity, SelectDeviceActivity.class);
+        activity.startActivity(intent);
     }
 }

@@ -41,8 +41,8 @@ public class MainActivity extends AppCompatActivity {
     public static ConnectedThread connectedThread;
     public static CreateConnectThread createConnectThread;
 
-    private final static int CONNECTING_STATUS = 1; // used in bluetooth handler to identify message status
-    private final static int MESSAGE_READ = 2; // used in bluetooth handler to identify message update
+    public final static int CONNECTING_STATUS = 1; // used in bluetooth handler to identify message status
+    public final static int MESSAGE_READ = 2; // used in bluetooth handler to identify message update
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
         if (deviceName != null){
             // Get the device address to make BT Connection
             deviceAddress = getIntent().getStringExtra("deviceAddress");
-            // Show progree and connection status
+            // Show progress and connection status
             toolbar.setSubtitle("Connecting to " + deviceName + "...");
             buttonConnect.setEnabled(false);
 
