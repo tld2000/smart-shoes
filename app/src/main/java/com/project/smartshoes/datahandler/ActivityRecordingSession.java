@@ -1,5 +1,6 @@
 package com.project.smartshoes.datahandler;
 
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothSocket;
 import android.os.Handler;
@@ -23,23 +24,18 @@ public class ActivityRecordingSession {
         STARTED,
         STOPPED
     }
-    public static enum SensorSide {
-        LEFT,
-        RIGHT
-    }
     private final String TAG = "ActivityRecordingSession";
     private final String START_CMD = "<start>";
     private final String SOP_CMD = "<stop>";
+    private double baroDiff;
 
     private long startTime = -1;
     private long endTime = -1;
     private AppCompatActivity activity;
-    private Profile profile;
     private Handler handler;
     private BluetoothAdapter bluetoothAdapter;
     private String sessionID;
-    private File dataFilePath;
-    private ArrayList<String> sensorAddresses = new ArrayList<String>();
+    private File dataFile;
 
 
 
@@ -47,11 +43,11 @@ public class ActivityRecordingSession {
         this.activity = activity;
         this.handler = handler;
         this.bluetoothAdapter = bluetoothAdapter;
-        profile = new Profile(activity);
         //recorder = new ActivityRecorder(); //TODO: create ActivityRecorder class
     }
 
 
+    @SuppressLint("LongLogTag")
     public void createDataFile(){
         File parentDataPath = new File(activity.getApplicationContext().getFilesDir() + "/data");
         if (!parentDataPath.exists()){
@@ -59,15 +55,14 @@ public class ActivityRecordingSession {
         }
 
         try {
-            dataFilePath = new File(activity.getApplicationContext().getFilesDir() + "/data", sessionID);
-            dataFilePath.mkdir();
-            File dataFileL = new File(dataFilePath, "L.txt");
-            File dataFileR = new File(dataFilePath, "R.txt");
-            dataFileL.createNewFile();
-            dataFileR.createNewFile();
+            File dataFile = new File(parentDataPath, "data.txt");
+            dataFile.createNewFile();
+            BufferedWriter writer = new BufferedWriter(new FileWriter(dataFile, true));
+            writer.append(baroDiff + System.lineSeparator());
+            writer.append(Profile.BARO_DIST + System.lineSeparator());
         } catch (IOException e) {
-            Log.e(TAG, "Error creating new data file directory " + dataFilePath.getPath());
-            dataFilePath = null;
+            Log.e(TAG, "Error creating new data file directory " + dataFile.getPath());
+            dataFile = null;
         }
     }
 
@@ -84,10 +79,7 @@ public class ActivityRecordingSession {
     public void startRecording(){
         startTime = System.currentTimeMillis();
         sessionID = String.valueOf(startTime);
-        loadProfile();
         createDataFile();
-        sendStartSignal();
-        //recorder.start(sessionID);
     }
 
 
@@ -97,8 +89,7 @@ public class ActivityRecordingSession {
     }
 
 
-    public void record(String writeValue, SensorSide side) throws IOException {
-        da
+    public void record(String writeValue) {
 
         if (dataFile == null || !dataFile.exists()){
             Log.e(TAG, "Data file not created.");
@@ -109,27 +100,18 @@ public class ActivityRecordingSession {
             writer.append(writeValue + System.lineSeparator());
         } catch (IOException e){
             Log.e(TAG, "Write to file failed at " + dataFile.getPath());
-            throw e;
         }
     }
 
 
-    public void loadProfile() {
-        if (profile.loadConfig()){
+    public void loadProfile(Profile profile) {
+        if (!profile.loadConfig()){
             Log.e(TAG, "Failed to load profile config.");
             throw new IllegalArgumentException("Failed to load Profile, please recalibrate");
         }
-        sensorAddresses.add(profile.getSensorAddress(SensorSide.LEFT));
-        sensorAddresses.add(profile.getSensorAddress(SensorSide.RIGHT));
+        baroDiff = profile.getBaroDiff();
     }
 
-
-    public void sendStartSignal(){
-        for (String BTAddress : sensorAddresses) {
-            MainActivity.CreateConnectThread createConnectThread = new MainActivity.CreateConnectThread(bluetoothAdapter, deviceAddress);
-            createConnectThread.start();
-        }
-    }
 
 
 }

@@ -23,7 +23,7 @@ public class Result {
             BufferedReader br = new BufferedReader(new FileReader(dataFile));
             String sCurrentLine;
             while ((sCurrentLine = br.readLine()) != null) {
-                arr.add(sCurrentLine);
+                //arr.add(sCurrentLine);
             }
 
         } catch (IOException e) {

@@ -68,8 +68,8 @@ public class BluetoothConnectionThread extends Thread {
 
         // The connection attempt succeeded. Perform work associated with
         // the connection in a separate thread.
-        AdruinoDataTransferThread adruinoDataTransferThread = new AdruinoDataTransferThread(mmSocket);
-        adruinoDataTransferThread.run();
+        ArduinoDataTransferThread arduinoDataTransferThread = new ArduinoDataTransferThread(mmSocket);
+        arduinoDataTransferThread.run();
     }
 
     // Closes the client socket and causes the thread to finish.

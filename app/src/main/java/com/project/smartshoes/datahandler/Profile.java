@@ -8,10 +8,18 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.project.smartshoes.MainActivity;
 import com.project.smartshoes.SelectDeviceActivity;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 
 
@@ -19,30 +27,17 @@ public class Profile {
     private final String TAG = "Profile";
     private final String CONFIG_FILE_NAME = "config.properties";
     public static final double BARO_DIST = 0.2;   // distance between 2 barometers, in meters
-    private double LBaroDiff = 0;    // value difference between the front and the back barometer of the left device
-    private double RBaroDiff = 0;    // value difference between the front and the back barometer of the right device
+    private double baroDiff = 0;    // value difference between the front and the back barometer of the left device
     private final AppCompatActivity activity;
-    private String LSensorAddress;
-    private String RSensorAddress;
 
 
     public Profile(AppCompatActivity activity){
         this.activity = activity;
     }
 
-    public boolean activate(){
-        return loadConfig();
-    }
+    public void calibrate() {
 
-    public void calibrate() throws IOException {
-        // get BT address value
-        getBTAddress();
-
-        // TODO: add get baroValues
-        double frontLBaroValue = 0;
-        double backLBaroValue = 0;
-
-        LBaroDiff = frontLBaroValue - backLBaroValue;
+        baroDiff = getBaroDiff();
 
         File configFile = new File(activity.getApplicationContext().getFilesDir(), CONFIG_FILE_NAME);
         Properties properties = new Properties();
@@ -56,18 +51,15 @@ public class Profile {
                 configFile.createNewFile();
             } catch (IOException ioException) {
                 Log.e(TAG, "Error creating new config file " + configFile.getPath());
-                throw new IOException("Error creating new config file.");
             }
         }
 
-        properties.setProperty("LeftBaroDiff", String.valueOf(LBaroDiff));
-        properties.setProperty("RightBaroDiff", String.valueOf(RBaroDiff));
+        properties.setProperty("baroDiff", String.valueOf(baroDiff));
         try {
             // create new config
             properties.store(new FileOutputStream(configFile), null);
         } catch (IOException e) {
             Log.e(TAG, "Error saving new config file " + configFile.getPath());
-            throw new IOException("Error saving config file.");
         }
     }
 
@@ -78,13 +70,11 @@ public class Profile {
 
         try {
             properties.load(new FileInputStream(new File(configPath, CONFIG_FILE_NAME)));
-            LBaroDiff = Double.parseDouble(properties.getProperty("LeftBaroDiff"));
-            RBaroDiff = Double.parseDouble(properties.getProperty("RightBaroDiff"));
-            LSensorAddress = properties.getProperty("LSensorAddress");
-            RSensorAddress = properties.getProperty("RSensorAddress");
-
-            if (LSensorAddress == null || RSensorAddress == null)
+            String baroDiffString = properties.getProperty("baroDiff");
+            if (baroDiffString == null )
                 return false;
+
+            baroDiff = Double.valueOf(baroDiffString);
             return true;
         } catch (IOException | NullPointerException e) {
             Log.e(TAG, "Unable to load the config file: " + e.getMessage());
@@ -93,22 +83,51 @@ public class Profile {
     }
 
 
-    public double getBaroDiff(ActivityRecordingSession.SensorSide side){
-        if (side == ActivityRecordingSession.SensorSide.LEFT)
-            return LBaroDiff;
-        return RBaroDiff;
+    public double getBaroDiff(){
+        double avrBaro1 = 0;
+        double avrBaro2 = 0;
+        int count = 0;
+
+        // read that csv file
+        File parentDataPath = new File(String.valueOf(activity.getApplicationContext().getFilesDir()));
+        try (BufferedReader br = new BufferedReader(new FileReader(parentDataPath + "/calibrationData.txt"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] values = line.split(",");
+                avrBaro1 += Double.valueOf(values[0]);
+                avrBaro2 += Double.valueOf(values[1]);
+                count++;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return (avrBaro1 - avrBaro2)/count;
     }
 
 
-    public String getSensorAddress(ActivityRecordingSession.SensorSide side){
-        if (side == ActivityRecordingSession.SensorSide.LEFT)
-            return LSensorAddress;
-        return RSensorAddress;
+    public void createCalibrationFile(){
+        File parentDataPath = new File(String.valueOf(activity.getApplicationContext().getFilesDir()));
+        try {
+            File calibrationFile = new File(parentDataPath, "calibrationData.txt");
+            calibrationFile.createNewFile();
+        } catch (IOException e) {
+            Log.e(TAG, "Error creating calibration data file directory " + parentDataPath.getAbsoluteFile().getPath() + "/calibrationData.txt");
+        }
     }
 
 
-    private void getBTAddress() {
-        Intent intent = new Intent(activity, SelectDeviceActivity.class);
-        activity.startActivity(intent);
+    public void calibrationDataWrite(String writeValue) {
+        File parentDataPath = new File(String.valueOf(activity.getApplicationContext().getFilesDir()));
+        File calibrationFile = new File(parentDataPath, "calibrationData.txt");
+
+        if (!calibrationFile.exists()){
+            Log.e(TAG, "Data file not created.");
+        }
+        try {
+            BufferedWriter writer = new BufferedWriter(new FileWriter(calibrationFile, true));
+            writer.append(writeValue + System.lineSeparator());
+        } catch (IOException e){
+            Log.e(TAG, "Write to file failed at " + calibrationFile.getPath());
+        }
     }
 }
